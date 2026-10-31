@@ -111,7 +111,46 @@ class FortuneWheel {
     }
 
     /**
-     * Start smooth deceleration spin
+     * Compute slices with proportional weights and probabilities
+     * Enables custom odds per sector while guaranteeing mathematical landing accuracy
+     */
+    getSectorSlices() {
+        if (!this.sectors || this.sectors.length === 0) return [];
+
+        let totalWeight = 0;
+        for (let i = 0; i < this.sectors.length; i++) {
+            const w = Number(this.sectors[i].weight);
+            totalWeight += (!isNaN(w) && w > 0) ? w : 1;
+        }
+        if (totalWeight <= 0) totalWeight = this.sectors.length;
+
+        let accumulatedAngle = 0;
+        return this.sectors.map((sector, index) => {
+            const w = Number(sector.weight);
+            const weight = (!isNaN(w) && w > 0) ? w : 1;
+            const sliceAngle = (weight / totalWeight) * (Math.PI * 2);
+            const startAngle = accumulatedAngle;
+            const endAngle = accumulatedAngle + sliceAngle;
+            const midAngle = startAngle + sliceAngle / 2;
+            const probability = (weight / totalWeight) * 100;
+
+            accumulatedAngle += sliceAngle;
+
+            return {
+                index,
+                sector,
+                weight,
+                probability,
+                startAngle,
+                endAngle,
+                midAngle,
+                sliceAngle
+            };
+        });
+    }
+
+    /**
+     * Start smooth deceleration spin with custom odds support
      * @param {number} targetSectorIndex Optional index to force or random if null
      */
     spin(targetSectorIndex = null) {
@@ -121,30 +160,38 @@ class FortuneWheel {
         this.spinStartTime = performance.now();
         this.startAngle = this.currentAngle;
 
-        // Determine winning sector
-        let winnerIndex;
-        if (targetSectorIndex !== null && targetSectorIndex >= 0 && targetSectorIndex < this.sectors.length) {
-            winnerIndex = targetSectorIndex;
+        const slices = this.getSectorSlices();
+        if (slices.length === 0) return;
+
+        // Determine winning sector based on configured odds / weights
+        let winningSlice;
+        if (targetSectorIndex !== null && targetSectorIndex >= 0 && targetSectorIndex < slices.length) {
+            winningSlice = slices[targetSectorIndex];
         } else {
-            winnerIndex = Math.floor(Math.random() * this.sectors.length);
+            const rand = Math.random() * 100;
+            let cumulative = 0;
+            winningSlice = slices[slices.length - 1]; // Fallback
+            for (const slice of slices) {
+                cumulative += slice.probability;
+                if (rand <= cumulative) {
+                    winningSlice = slice;
+                    break;
+                }
+            }
         }
 
-        const numSectors = this.sectors.length;
-        const sliceAngle = (Math.PI * 2) / numSectors;
-
-        // Calculate angular position of target sector
         // Pointer is at 12 o'clock (270 degrees = 3*PI/2)
         const pointerAngle = (3 * Math.PI) / 2;
-        
-        // Random landing offset inside sector (10% to 90% of slice width to avoid exact border ambiguity)
-        const innerOffset = (0.2 + Math.random() * 0.6) * sliceAngle;
-        const targetSectorCenter = winnerIndex * sliceAngle + innerOffset;
+
+        // Random landing offset inside sector (20% to 80% of slice width to avoid exact border ambiguity)
+        const innerOffset = (0.2 + Math.random() * 0.6) * winningSlice.sliceAngle;
+        const targetSectorPoint = winningSlice.startAngle + innerOffset;
 
         // Target angle calculation:
-        // We want: (pointerAngle - finalAngle) % (2*PI) === targetSectorCenter
-        // => finalAngle = pointerAngle - targetSectorCenter + 2*PI * fullRotations
+        // We want: (pointerAngle - finalAngle) % (2*PI) === targetSectorPoint
+        // => finalAngle = pointerAngle - targetSectorPoint + 2*PI * fullRotations
         const currentMod = this.startAngle % (Math.PI * 2);
-        let delta = pointerAngle - targetSectorCenter - currentMod;
+        let delta = pointerAngle - targetSectorPoint - currentMod;
         while (delta < 0) {
             delta += Math.PI * 2;
         }
@@ -152,9 +199,9 @@ class FortuneWheel {
         // Full rotations for suspense (between 6 and 9 rotations)
         const fullRotations = Math.floor(Math.random() * 3) + 7;
         this.targetAngle = this.startAngle + delta + fullRotations * Math.PI * 2;
-        this.winningSector = this.sectors[winnerIndex];
+        this.winningSector = winningSlice.sector;
 
-        // Random duration with slight variance (5.0s - 6.5s)
+        // Random duration with slight variance (5.0s - 6.4s)
         this.spinDuration = 5400 + Math.random() * 900;
 
         if (this.onSpinStart) {
@@ -233,22 +280,28 @@ class FortuneWheel {
 
     getSectorAtPointer() {
         if (this.sectors.length === 0) return null;
-        const numSectors = this.sectors.length;
-        const sliceAngle = (Math.PI * 2) / numSectors;
-        const pointerAngle = (3 * Math.PI) / 2;
+        const pointerAngle = (3 * Math.PI) / 2; // 12 o'clock
 
         let relativeAngle = ((pointerAngle - (this.currentAngle % (Math.PI * 2))) + Math.PI * 2) % (Math.PI * 2);
-        const index = Math.floor(relativeAngle / sliceAngle) % numSectors;
-        return this.sectors[index];
+        const slices = this.getSectorSlices();
+        for (const slice of slices) {
+            if (relativeAngle >= slice.startAngle && relativeAngle < slice.endAngle) {
+                return slice.sector;
+            }
+        }
+        return this.sectors[this.sectors.length - 1];
     }
 
     getSectorAtAngle(angleRad) {
         if (this.sectors.length === 0) return -1;
-        const numSectors = this.sectors.length;
-        const sliceAngle = (Math.PI * 2) / numSectors;
-
         let relAngle = ((angleRad - (this.currentAngle % (Math.PI * 2))) + Math.PI * 2) % (Math.PI * 2);
-        return Math.floor(relAngle / sliceAngle) % numSectors;
+        const slices = this.getSectorSlices();
+        for (const slice of slices) {
+            if (relAngle >= slice.startAngle && relAngle < slice.endAngle) {
+                return slice.index;
+            }
+        }
+        return this.sectors.length - 1;
     }
 
     /**
@@ -384,13 +437,10 @@ class FortuneWheel {
             return;
         }
 
-        const sliceAngle = (Math.PI * 2) / numSectors;
+        const slices = this.getSectorSlices();
 
-        for (let i = 0; i < numSectors; i++) {
-            const sector = this.sectors[i];
-            const startAngle = i * sliceAngle;
-            const endAngle = startAngle + sliceAngle;
-            const midAngle = startAngle + sliceAngle / 2;
+        for (const slice of slices) {
+            const { sector, startAngle, endAngle, midAngle, sliceAngle, index } = slice;
 
             // Wedge path
             ctx.beginPath();
@@ -419,7 +469,7 @@ class FortuneWheel {
             ctx.stroke();
 
             // Render Sector Content (Title + Multi-line Description)
-            this.drawSectorText(ctx, sector, midAngle, sliceAngle, i);
+            this.drawSectorText(ctx, sector, midAngle, sliceAngle, index);
         }
     }
 

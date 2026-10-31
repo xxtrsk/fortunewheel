@@ -205,6 +205,23 @@
                         </div>
                     </div>
                 </div>
+                <div class="form-group">
+                    <div class="form-label-with-badge">
+                        <label for="input-sector-weight">Odds / Weight <span class="required">*</span></label>
+                        <span class="odds-preview-badge" id="odds-preview-badge">1x · 12.5% chance</span>
+                    </div>
+                    <div class="weight-control-row">
+                        <input type="range" id="input-sector-weight" class="form-range" min="1" max="10" step="1" value="1">
+                        <div class="weight-quick-chips" id="weight-quick-chips">
+                            <button type="button" class="btn-weight-chip active" data-weight="1">1x (Default)</button>
+                            <button type="button" class="btn-weight-chip" data-weight="2">2x</button>
+                            <button type="button" class="btn-weight-chip" data-weight="3">3x</button>
+                            <button type="button" class="btn-weight-chip" data-weight="5">5x</button>
+                            <button type="button" class="btn-weight-chip" data-weight="10">10x (Max)</button>
+                        </div>
+                    </div>
+                    <span class="form-hint">Adjust win probability: higher weight widens the slice on the wheel and increases odds</span>
+                </div>
                 <div class="form-buttons">
                     <button class="btn btn-secondary" id="btn-cancel-form">Cancel</button>
                     <button class="btn btn-primary" id="btn-save-sector">Save Sector</button>
@@ -214,7 +231,7 @@
             <!-- Sectors List Header -->
             <div class="sectors-list-header">
                 <span>Active Sectors (<span id="sectors-count-label">8</span>)</span>
-                <span class="text-muted">Click any to edit</span>
+                <button type="button" class="btn-equalize-odds" id="btn-equalize-odds" title="Reset all sector odds to equal 1x chance">⚖️ Equalize Odds</button>
             </div>
 
             <!-- Sectors Dynamic List -->
@@ -314,6 +331,9 @@
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                     Copy Details
+                </button>
+                <button class="btn btn-secondary" id="btn-modal-close-footer" title="Close dialog">
+                    Close
                 </button>
                 <button class="btn btn-spin-modal" id="btn-modal-spin-again">
                     Spin Again!

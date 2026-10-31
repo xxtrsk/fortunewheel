@@ -81,6 +81,10 @@
                 inputSectorColor: document.getElementById('input-sector-color'),
                 colorHexLabel: document.getElementById('color-hex-label'),
                 paletteSwatches: document.getElementById('palette-swatches'),
+                inputSectorWeight: document.getElementById('input-sector-weight'),
+                oddsPreviewBadge: document.getElementById('odds-preview-badge'),
+                weightQuickChips: document.getElementById('weight-quick-chips'),
+                btnEqualizeOdds: document.getElementById('btn-equalize-odds'),
                 btnSaveSector: document.getElementById('btn-save-sector'),
                 btnCancelForm: document.getElementById('btn-cancel-form'),
                 btnCancelSectorForm: document.getElementById('btn-cancel-sector-form'),
@@ -104,6 +108,7 @@
                 winnerBadgeText: document.getElementById('winner-badge-text'),
                 winnerTrophyIcon: document.getElementById('winner-trophy-icon'),
                 btnCloseWinnerModal: document.getElementById('btn-close-winner-modal'),
+                btnModalCloseFooter: document.getElementById('btn-modal-close-footer'),
                 btnCopyWinner: document.getElementById('btn-copy-winner'),
                 btnModalSpinAgain: document.getElementById('btn-modal-spin-again'),
                 tooltip: document.getElementById('sector-hover-tooltip'),
@@ -139,6 +144,13 @@
                 this.activePresetKey = 'halloween';
                 this.saveSectors();
             }
+
+            // Normalize weights
+            this.sectors.forEach(s => {
+                if (!s.weight || isNaN(Number(s.weight)) || Number(s.weight) < 1) {
+                    s.weight = 1;
+                }
+            });
 
             // Load spin history
             try {
@@ -257,27 +269,77 @@
                 this.dom.btnThemeToggle.addEventListener('click', () => this.toggleTheme());
             }
 
-            // Spin Trigger buttons
+            // Spin Trigger button
             this.dom.btnSpin.addEventListener('click', () => this.spin());
-            this.dom.btnModalSpinAgain.addEventListener('click', () => {
+
+            // Modal action handlers
+            const handleWinnerClose = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 this.closeWinnerModal();
-                setTimeout(() => this.spin(), 200);
+            };
+
+            const handleWinnerRespin = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                this.closeWinnerModal();
+                this.wheel.isSpinning = false;
+                this.dom.btnSpin.disabled = false;
+                setTimeout(() => {
+                    this.spin();
+                }, 120);
+            };
+
+            this.dom.btnCloseWinnerModal.addEventListener('click', handleWinnerClose);
+            this.dom.btnCloseWinnerModal.addEventListener('touchend', handleWinnerClose);
+
+            if (this.dom.btnModalCloseFooter) {
+                this.dom.btnModalCloseFooter.addEventListener('click', handleWinnerClose);
+                this.dom.btnModalCloseFooter.addEventListener('touchend', handleWinnerClose);
+            }
+
+            this.dom.btnModalSpinAgain.addEventListener('click', handleWinnerRespin);
+            this.dom.btnModalSpinAgain.addEventListener('touchend', handleWinnerRespin);
+
+            // Prevent clicks inside card from propagating to backdrop
+            const modalCard = this.dom.winnerModal.querySelector('.winner-modal-card');
+            if (modalCard) {
+                modalCard.addEventListener('click', (e) => e.stopPropagation());
+            }
+
+            this.dom.winnerModal.addEventListener('click', (e) => {
+                if (e.target === this.dom.winnerModal) {
+                    handleWinnerClose(e);
+                }
             });
 
-            // Spacebar shortcut for spinning
+            // Keyboard shortcuts
             window.addEventListener('keydown', (e) => {
                 // If focus is in an input or textarea, ignore shortcuts
                 if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-                if (e.code === 'Space') {
+                const isWinnerModalOpen = !this.dom.winnerModal.classList.contains('hidden');
+
+                if (e.key === 'Escape') {
+                    if (isWinnerModalOpen) {
+                        handleWinnerClose(e);
+                    } else {
+                        this.closeDrawers();
+                        this.closeDropdowns();
+                    }
+                } else if (e.code === 'Space' || e.key === 'Enter') {
                     e.preventDefault();
-                    this.spin();
+                    if (isWinnerModalOpen) {
+                        handleWinnerRespin(e);
+                    } else {
+                        this.spin();
+                    }
                 } else if (e.key === 'f' || e.key === 'F') {
                     this.toggleFullscreen();
-                } else if (e.key === 'Escape') {
-                    this.closeDrawers();
-                    this.closeWinnerModal();
-                    this.closeDropdowns();
                 } else if (e.key === '+' || e.key === '=') {
                     this.setZoom(this.zoomScale + 0.1);
                 } else if (e.key === '-' || e.key === '_') {
@@ -325,6 +387,34 @@
             this.dom.btnCancelSectorForm.addEventListener('click', () => this.closeSectorForm());
             this.dom.btnSaveSector.addEventListener('click', () => this.saveSectorFromForm());
 
+            // Odds / Weight Slider & Quick Chips
+            if (this.dom.inputSectorWeight) {
+                this.dom.inputSectorWeight.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value, 10) || 1;
+                    this.updateOddsFormPreview(val);
+                });
+            }
+
+            if (this.dom.weightQuickChips) {
+                this.dom.weightQuickChips.querySelectorAll('.btn-weight-chip').forEach(chip => {
+                    chip.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const w = parseInt(chip.dataset.weight, 10) || 1;
+                        if (this.dom.inputSectorWeight) {
+                            this.dom.inputSectorWeight.value = w;
+                        }
+                        this.updateOddsFormPreview(w);
+                    });
+                });
+            }
+
+            // Equalize Odds Button
+            if (this.dom.btnEqualizeOdds) {
+                this.dom.btnEqualizeOdds.addEventListener('click', () => {
+                    this.equalizeAllOdds();
+                });
+            }
+
             // Color inputs sync
             this.dom.inputSectorColor.addEventListener('input', (e) => {
                 this.selectedFormColor = e.target.value;
@@ -364,11 +454,7 @@
             // Zen Mode
             this.dom.btnZenMode.addEventListener('click', () => this.toggleZenMode());
 
-            // Winner Modal Close & Copy
-            this.dom.btnCloseWinnerModal.addEventListener('click', () => this.closeWinnerModal());
-            this.dom.winnerModal.addEventListener('click', (e) => {
-                if (e.target === this.dom.winnerModal) this.closeWinnerModal();
-            });
+            // Winner Modal Copy Details
             this.dom.btnCopyWinner.addEventListener('click', () => this.copyWinnerDetails());
         }
 
@@ -527,12 +613,14 @@
             void this.dom.sectorFormCard.offsetWidth; // Force reflow
             this.dom.sectorFormCard.classList.add('highlight');
 
+            let weight = 1;
             if (sectorToEdit) {
                 this.editingSectorId = sectorToEdit.id;
                 this.dom.formCardTitle.textContent = 'Edit Sector';
                 this.dom.inputSectorTitle.value = sectorToEdit.title;
                 this.dom.inputSectorDesc.value = sectorToEdit.description || '';
                 this.selectedFormColor = sectorToEdit.color || PALETTE_COLORS[0];
+                weight = Math.max(1, parseInt(sectorToEdit.weight, 10) || 1);
             } else {
                 this.editingSectorId = null;
                 this.dom.formCardTitle.textContent = 'Add New Sector';
@@ -540,7 +628,13 @@
                 this.dom.inputSectorDesc.value = '';
                 const nextColorIndex = this.sectors.length % PALETTE_COLORS.length;
                 this.selectedFormColor = PALETTE_COLORS[nextColorIndex];
+                weight = 1;
             }
+
+            if (this.dom.inputSectorWeight) {
+                this.dom.inputSectorWeight.value = weight;
+            }
+            this.updateOddsFormPreview(weight);
 
             this.dom.inputSectorColor.value = this.selectedFormColor;
             this.dom.colorHexLabel.textContent = this.selectedFormColor.toUpperCase();
@@ -556,6 +650,47 @@
             }, 100);
         }
 
+        updateOddsFormPreview(currentWeight) {
+            const w = Math.max(1, parseInt(currentWeight, 10) || 1);
+            let totalOtherWeights = 0;
+            this.sectors.forEach(s => {
+                if (s.id !== this.editingSectorId) {
+                    totalOtherWeights += (Number(s.weight) || 1);
+                }
+            });
+            const total = totalOtherWeights + w;
+            const percent = (w / (total > 0 ? total : 1)) * 100;
+
+            if (this.dom.oddsPreviewBadge) {
+                this.dom.oddsPreviewBadge.textContent = `${w}x · ${percent.toFixed(1)}% chance`;
+            }
+
+            if (this.dom.weightQuickChips) {
+                this.dom.weightQuickChips.querySelectorAll('.btn-weight-chip').forEach(chip => {
+                    const chipWeight = parseInt(chip.dataset.weight, 10);
+                    if (chipWeight === w) {
+                        chip.classList.add('active');
+                    } else {
+                        chip.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        equalizeAllOdds() {
+            this.sectors.forEach(s => {
+                s.weight = 1;
+            });
+            this.saveSectors();
+            this.wheel.setSectors(this.sectors);
+            this.renderSectorsList();
+            if (!this.dom.sectorFormCard.classList.contains('hidden')) {
+                if (this.dom.inputSectorWeight) this.dom.inputSectorWeight.value = 1;
+                this.updateOddsFormPreview(1);
+            }
+            this.showToast('⚖️ All sector odds equalized to 1x!');
+        }
+
         closeSectorForm() {
             this.dom.sectorFormCard.classList.add('hidden');
             this.editingSectorId = null;
@@ -565,6 +700,7 @@
             const title = this.dom.inputSectorTitle.value.trim();
             const desc = this.dom.inputSectorDesc.value.trim();
             const color = this.selectedFormColor || this.dom.inputSectorColor.value;
+            const weight = this.dom.inputSectorWeight ? (parseInt(this.dom.inputSectorWeight.value, 10) || 1) : 1;
 
             if (!title) {
                 this.showToast('Please enter a sector title');
@@ -579,6 +715,7 @@
                     this.sectors[idx].title = title;
                     this.sectors[idx].description = desc;
                     this.sectors[idx].color = color;
+                    this.sectors[idx].weight = weight;
                     this.showToast('Sector updated!');
                 }
             } else {
@@ -587,7 +724,8 @@
                     id: 's_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                     title: title,
                     description: desc,
-                    color: color
+                    color: color,
+                    weight: weight
                 };
                 this.sectors.push(newSector);
                 this.showToast('New sector added!');
@@ -634,6 +772,8 @@
             this.dom.sectorsList.innerHTML = '';
             this.dom.sectorsCountLabel.textContent = this.sectors.length.toString();
 
+            const slices = (this.wheel && this.wheel.getSectorSlices) ? this.wheel.getSectorSlices() : [];
+
             this.sectors.forEach((sec, idx) => {
                 const card = document.createElement('div');
                 card.className = 'sector-item-card';
@@ -661,6 +801,20 @@
 
                 info.appendChild(title);
                 info.appendChild(desc);
+
+                // Probability & Weight Badge
+                const weight = Number(sec.weight) || 1;
+                const sliceInfo = slices.find(s => s.sector && s.sector.id === sec.id) || { probability: 100 / (this.sectors.length || 1) };
+                
+                const metaRow = document.createElement('div');
+                metaRow.className = 'sector-meta-row';
+
+                const oddsBadge = document.createElement('span');
+                oddsBadge.className = 'sector-odds-badge';
+                oddsBadge.textContent = `🎲 ${sliceInfo.probability.toFixed(1)}% (${weight}x)`;
+                metaRow.appendChild(oddsBadge);
+
+                info.appendChild(metaRow);
 
                 const actions = document.createElement('div');
                 actions.className = 'sector-item-actions';
@@ -801,6 +955,11 @@
 
             this.activePresetKey = presetKey;
             this.sectors = JSON.parse(JSON.stringify(preset.sectors));
+            this.sectors.forEach(s => {
+                if (!s.weight || isNaN(Number(s.weight)) || Number(s.weight) < 1) {
+                    s.weight = 1;
+                }
+            });
             this.saveSectors();
             this.wheel.setSectors(this.sectors);
             this.renderSectorsList();
@@ -856,7 +1015,8 @@
                         id: s.id || ('s_' + Date.now() + '_' + idx),
                         title: (s.title || `Sector ${idx + 1}`).toString(),
                         description: (s.description || '').toString(),
-                        color: s.color || PALETTE_COLORS[idx % PALETTE_COLORS.length]
+                        color: s.color || PALETTE_COLORS[idx % PALETTE_COLORS.length],
+                        weight: Math.max(1, parseInt(s.weight, 10) || 1)
                     }));
 
                     this.saveSectors();
