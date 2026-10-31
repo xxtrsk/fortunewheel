@@ -503,7 +503,7 @@ class FortuneWheel {
         // Sector index badge / number near outer rim edge
         ctx.save();
         ctx.fillStyle = textColor === '#ffffff' ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.75)';
-        const badgeSize = Math.max(9, Math.min(13, 11 * (this.radius / 260)));
+        const badgeSize = Math.max(8.5, Math.min(11.5, 9.5 * (this.radius / 260)));
         ctx.font = `700 ${badgeSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
@@ -512,33 +512,33 @@ class FortuneWheel {
 
         // Check if we can show description lines
         const hasDesc = sector.description && sector.description.trim().length > 0;
-        const canFitMultiLine = hasDesc && (availableHeightAtStart >= 30 || availableHeightAtMid >= 44) && numSectors <= 14;
+        const canFitMultiLine = hasDesc && (availableHeightAtStart >= 26 || availableHeightAtMid >= 38) && numSectors <= 16;
 
-        // Dynamic typography sizing
-        let titleSize = 15;
-        let descSize = 10.5;
+        // Dynamic typography sizing (slightly smaller, refined, and highly legible)
+        let titleSize = 12.5;
+        let descSize = 8.8;
 
         if (numSectors <= 4) {
-            titleSize = 20;
-            descSize = 12.5;
+            titleSize = 16.5;
+            descSize = 10.5;
         } else if (numSectors <= 8) {
-            titleSize = 15.5;
-            descSize = 11;
+            titleSize = 13.0;
+            descSize = 9.2;
         } else if (numSectors <= 12) {
-            titleSize = 13.5;
-            descSize = 9.5;
+            titleSize = 11.2;
+            descSize = 8.2;
         } else if (numSectors <= 16) {
-            titleSize = 12;
-            descSize = 8.5;
+            titleSize = 10.0;
+            descSize = 7.5;
         } else {
-            titleSize = 10.5;
-            descSize = 8;
+            titleSize = 8.8;
+            descSize = 6.8;
         }
 
         // Scale by wheel zoom factor
         const zoomFactor = this.radius / 260;
-        titleSize = Math.max(9.5, titleSize * zoomFactor);
-        descSize = Math.max(8, descSize * zoomFactor);
+        titleSize = Math.max(8.5, titleSize * zoomFactor);
+        descSize = Math.max(7.0, descSize * zoomFactor);
 
         // Setup text rendering styling
         ctx.save();
@@ -782,11 +782,11 @@ class FortuneWheel {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fill();
 
-        // Center Text: "🎃 ЖМИ" / "BOO!" or "ПУСК"
+        // Center Text: "🎃 SPIN" or "SPIN"
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const fontSize = Math.max(10, innerR * 0.34);
+        const fontSize = Math.max(9.5, innerR * 0.29);
         ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         ctx.fillStyle = '#ffffff';
         ctx.shadowColor = this.halloweenMode ? 'rgba(234, 88, 12, 0.9)' : 'rgba(0, 0, 0, 0.8)';
