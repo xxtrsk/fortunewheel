@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interactive Fortune Wheel — Super Sexy Halloween</title>
+    <meta name="description" content="Large interactive fortune wheel with support for detailed descriptions, custom colors, realistic sound effects, and full sector management.">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-halloween">
+
+    <!-- Ambient Spooky Halloween Fog & Floating Embers -->
+    <div class="spooky-fog"></div>
+    <div class="floating-bat bat-1">🦇</div>
+    <div class="floating-bat bat-2">🦇</div>
+    <div class="floating-bat bat-3">🦇</div>
+    <div class="halloween-embers" id="halloween-embers"></div>
+
+    <!-- Top Navigation & Controls Bar -->
+    <header class="app-header" id="app-header">
+        <div class="header-brand">
+            <div class="brand-icon halloween-brand-pulse">
+                <span class="brand-pumpkin">🎃</span>
+            </div>
+            <div class="brand-text">
+                <h1 class="brand-title-spooky">FORTUNE WHEEL</h1>
+                <span class="brand-sub" id="brand-sub-label">🎃 Sexy Halloween Edition 🩸</span>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <!-- Theme Toggle: Sexy Halloween / Classic Gold -->
+            <button class="btn btn-halloween btn-icon-text" id="btn-theme-toggle" title="Toggle Sexy Halloween / Classic Luxury theme">
+                <span class="halloween-icon-spin" id="theme-btn-icon">🎃</span>
+                <span class="btn-label" id="theme-btn-label">Halloween</span>
+            </button>
+
+            <!-- Presets / Templates selector -->
+            <div class="dropdown-wrapper">
+                <button class="btn btn-secondary btn-icon-text" id="btn-presets" title="Choose a preset template">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 6h16M4 12h16M4 18h7"></path>
+                    </svg>
+                    <span class="btn-label">Templates</span>
+                </button>
+                <div class="dropdown-menu" id="presets-dropdown">
+                    <div class="dropdown-title">Wheel Templates</div>
+                    <button class="dropdown-item dropdown-item-halloween" data-preset="halloween">🎃 Sexy Halloween: Sins & Desires</button>
+                    <button class="dropdown-item" data-preset="prizes">🎁 Premium Prizes & Rewards</button>
+                    <button class="dropdown-item" data-preset="decisions">🎯 Decision Maker</button>
+                    <button class="dropdown-item" data-preset="weekend">🌴 Weekend & Night Plans</button>
+                    <button class="dropdown-item" data-preset="team">💼 Team Building & Retro</button>
+                </div>
+            </div>
+
+            <!-- Sound toggle button -->
+            <button class="btn btn-icon btn-secondary" id="btn-sound" title="Toggle Sound (Mute/Unmute)" aria-label="Sound">
+                <svg id="icon-sound-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                </svg>
+                <svg id="icon-sound-off" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+            </button>
+
+            <!-- Fullscreen toggle -->
+            <button class="btn btn-icon btn-secondary" id="btn-fullscreen" title="Fullscreen Mode (F)" aria-label="Fullscreen">
+                <svg id="icon-fs-enter" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+                <svg id="icon-fs-exit" class="hidden" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                </svg>
+            </button>
+
+            <!-- History drawer button -->
+            <button class="btn btn-secondary btn-icon-text" id="btn-open-history" title="View spin history">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="btn-label">History</span>
+                <span class="badge" id="history-badge">0</span>
+            </button>
+
+            <!-- Sectors manager panel toggle button -->
+            <button class="btn btn-primary btn-icon-text" id="btn-open-settings" title="Edit sectors, titles, descriptions and colors">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span class="btn-label">Edit Sectors</span>
+                <span class="badge" id="sectors-badge">8</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Stage: Center Stage for Massive Wheel -->
+    <main class="wheel-stage-container" id="wheel-stage-container">
+
+        <!-- Canvas Wrapper (Scalable) -->
+        <div class="wheel-canvas-wrapper" id="wheel-canvas-wrapper">
+            <canvas id="wheel-canvas"></canvas>
+        </div>
+
+        <!-- Wheel Bottom Controls Toolbar -->
+        <div class="stage-controls">
+            <!-- Big Spin Button -->
+            <button class="btn btn-spin btn-spin-halloween" id="btn-spin">
+                <span class="spin-glow"></span>
+                <span class="spin-text" id="spin-btn-text">SPIN THE WHEEL 🎃</span>
+                <span class="spin-keyhint">SPACE</span>
+            </button>
+
+            <!-- Zoom & View Control Bar -->
+            <div class="zoom-toolbar">
+                <button class="btn-zoom" id="btn-zoom-out" title="Zoom Out (-)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <span class="zoom-value" id="zoom-value">100%</span>
+                <button class="btn-zoom" id="btn-zoom-in" title="Zoom In (+)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+                <button class="btn-zoom btn-zoom-reset" id="btn-zoom-reset" title="Reset Zoom">↺</button>
+
+                <div class="toolbar-divider"></div>
+
+                <!-- Zen / Focus Mode Toggle -->
+                <button class="btn-zoom" id="btn-zen-mode" title="Toggle Clean Focus / Zen Mode">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Live Hover Tooltip for Sectors -->
+        <div class="sector-hover-tooltip" id="sector-hover-tooltip">
+            <div class="tooltip-badge" id="tooltip-color-badge"></div>
+            <div class="tooltip-content">
+                <h4 class="tooltip-title" id="tooltip-title">Sector Title</h4>
+                <p class="tooltip-desc" id="tooltip-desc">Detailed description...</p>
+                <span class="tooltip-click-hint">Click sector to edit</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Side Drawer 1: Sectors Manager Panel -->
+    <aside class="side-drawer" id="drawer-settings" aria-hidden="true">
+        <div class="drawer-header">
+            <div class="drawer-header-info">
+                <h3>Manage Sectors</h3>
+                <span class="drawer-subtitle">Customize titles, descriptions, and colors</span>
+            </div>
+            <button class="btn-close-drawer" id="btn-close-settings" title="Close Panel">×</button>
+        </div>
+
+        <div class="drawer-body" id="drawer-body-settings">
+            <!-- Add Sector Button / Trigger -->
+            <div class="drawer-actions-bar">
+                <button class="btn btn-primary btn-block" id="btn-add-sector-trigger">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    + Add New Sector
+                </button>
+            </div>
+
+            <!-- Inline Sector Editor Form (collapsible) -->
+            <div class="sector-form-card hidden" id="sector-form-card">
+                <div class="form-card-header">
+                    <h4 id="form-card-title">New Sector</h4>
+                    <button class="btn-card-close" id="btn-cancel-sector-form" title="Close">×</button>
+                </div>
+                <div class="form-group">
+                    <label for="input-sector-title">Sector Title <span class="required">*</span></label>
+                    <input type="text" id="input-sector-title" class="form-input" placeholder="e.g. Vampire's Kiss" maxlength="60">
+                </div>
+                <div class="form-group">
+                    <label for="input-sector-desc">Detailed Description</label>
+                    <textarea id="input-sector-desc" class="form-textarea" rows="3" placeholder="Write multiple sentences explaining this prize, action, or dare..."></textarea>
+                    <span class="form-hint">Text appears neatly on the wheel and shows in full when won</span>
+                </div>
+                <div class="form-group">
+                    <label>Sector Color</label>
+                    <div class="color-picker-row">
+                        <div class="palette-swatches" id="palette-swatches">
+                            <!-- Predefined color options -->
+                        </div>
+                        <div class="custom-color-wrap">
+                            <input type="color" id="input-sector-color" value="#ea580c" title="Pick custom color">
+                            <span class="color-hex-label" id="color-hex-label">#EA580C</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary" id="btn-cancel-form">Cancel</button>
+                    <button class="btn btn-primary" id="btn-save-sector">Save Sector</button>
+                </div>
+            </div>
+
+            <!-- Sectors List Header -->
+            <div class="sectors-list-header">
+                <span>Active Sectors (<span id="sectors-count-label">8</span>)</span>
+                <span class="text-muted">Click any to edit</span>
+            </div>
+
+            <!-- Sectors Dynamic List -->
+            <div class="sectors-list" id="sectors-list">
+                <!-- Generated dynamically via JS -->
+            </div>
+
+            <!-- Backup & Reset Bar -->
+            <div class="drawer-footer-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-export-json" title="Export current wheel sectors to JSON file">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Export JSON
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-import-json-trigger" title="Import sectors from JSON file">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Import JSON
+                </button>
+                <input type="file" id="input-import-file" accept=".json" class="hidden">
+
+                <button class="btn btn-danger-soft btn-sm" id="btn-reset-default" title="Reset wheel to default template">
+                    Reset All
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Side Drawer 2: Spin History Panel -->
+    <aside class="side-drawer" id="drawer-history" aria-hidden="true">
+        <div class="drawer-header">
+            <div class="drawer-header-info">
+                <h3>Spin History</h3>
+                <span class="drawer-subtitle">All past winning sectors & timestamps</span>
+            </div>
+            <button class="btn-close-drawer" id="btn-close-history" title="Close Panel">×</button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- Summary stats -->
+            <div class="history-stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-total-spins">0</span>
+                    <span class="stat-label">Total Spins</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-last-win">—</span>
+                    <span class="stat-label">Latest Winner</span>
+                </div>
+            </div>
+
+            <!-- History Actions -->
+            <div class="history-actions-bar">
+                <span>Event Log</span>
+                <button class="btn btn-text-danger btn-sm" id="btn-clear-history">Clear History</button>
+            </div>
+
+            <!-- History Entries List -->
+            <div class="history-list" id="history-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- Drawer Backdrop Overlay -->
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+    <!-- Winner Celebration Modal -->
+    <div class="modal-backdrop hidden" id="winner-modal">
+        <div class="winner-modal-card">
+            <button class="modal-close-btn" id="btn-close-winner-modal" title="Close">×</button>
+            
+            <div class="winner-celebration-badge" id="winner-celebration-badge">
+                <span class="trophy-icon" id="winner-trophy-icon">🦇 🎃 🩸</span>
+                <span id="winner-badge-text">YOUR FATAL REWARD</span>
+            </div>
+
+            <div class="winner-sector-banner" id="winner-sector-banner">
+                <div class="winner-color-strip" id="winner-color-strip"></div>
+                <h2 class="winner-title" id="winner-title">Winning Sector</h2>
+            </div>
+
+            <div class="winner-description-box" id="winner-desc-box">
+                <p id="winner-description">Detailed description of the winning sector...</p>
+            </div>
+
+            <div class="winner-modal-actions">
+                <button class="btn btn-secondary btn-icon-text" id="btn-copy-winner" title="Copy title and full description">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    Copy Details
+                </button>
+                <button class="btn btn-spin-modal" id="btn-modal-spin-again">
+                    Spin Again!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="confetti.js"></script>
+    <script src="audio.js"></script>
+    <script src="presets.js"></script>
+    <script src="wheel.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
