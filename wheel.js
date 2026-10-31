@@ -53,8 +53,8 @@ class FortuneWheel {
         this.canvas.addEventListener('mouseleave', () => this.handleMouseLeave());
         this.canvas.addEventListener('click', (e) => this.handleClick(e));
 
-        // Start render loop
-        this.render();
+        // Draw initial frame
+        this.requestDraw();
     }
 
     setSectors(sectors) {
